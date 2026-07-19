@@ -1,0 +1,181 @@
+{
+  "_comment": "Direction artistique et reglages du monteur. Modifiable a la main. Les couleurs sont en hex.",
+
+  "edit": {
+    "aggressiveness": "gentle",
+    "use_silence_detector": true,
+    "silence_noise_db": -35,
+    "silence_min_s": 0.25,
+    "silence_protect_max_gap_s": 3.0,
+    "min_pure_silence_cut_s": 0.6,
+    "keep_silences": [],
+    "min_silence_to_cut_s": 0.9,
+    "mid_sentence_factor": 3.5,
+    "keep_pause_after_sentence_s": 0.35,
+    "remove_fillers": true,
+    "fillers": ["euh", "euhm", "hum", "hmm", "heu", "bah", "ben", "enfin", "genre", "du coup", "voila quoi", "en fait la"],
+    "remove_repetitions": true,
+    "remove_repeated_phrases": true,
+    "repeat_ngram_max": 6,
+    "repeat_ngram_gap_words": 2,
+    "repeat_max_span_s": 6.0,
+    "remove_false_starts": true,
+    "false_start_max_words": 8,
+    "false_start_clause_gap_s": 0.45,
+    "pad_start_s": 1.0,
+    "pad_end_s": 0.3
+  },
+
+  "da": {
+    "_comment": "LA PATTE (etape 4 theyo) : le design system UNIQUE de tes montages. Change accent/bg/surface et TOUTE la video suit (sous-titres, stat, bars, calendar, diagram, callouts, split, title_card).",
+    "accent": "#FFE500",
+    "text": "#FFFFFF",
+    "muted": "rgba(255,255,255,0.75)",
+    "bg": "#0b0b12",
+    "surface": "#1b1e28",
+    "border": "rgba(255,255,255,0.15)",
+    "backgrounds": {"dark": "#0b0b12", "light": "#F5F5F2"}
+  },
+
+  "layouts": {
+    "split": {
+      "_comment": "Disposition 'moi + animation'. video_pos auto = left en 16:9, top (empile) en 9:16. transition_s = duree du glissement anime plein cadre <-> carte.",
+      "video_pos": "auto",
+      "video_w": null,
+      "video_h": null,
+      "margin": 0.05,
+      "radius": 0.02,
+      "transition_s": 0.4
+    }
+  },
+
+  "captions": {
+    "style": "word_by_word",
+    "preset": "clean",
+    "mode": "auto",
+    "language": "fr",
+    "font_family": "Montserrat",
+    "font_weight": 800,
+    "font_size_ratio": 0.056,
+    "max_words_per_line": 3,
+    "position": "bottom",
+    "text_color": "#FFFFFF",
+    "highlight_color": "#FFE500",
+    "highlight_mode": "box",
+    "stroke_color": "#000000",
+    "stroke_width_ratio": 0.013,
+    "shadow": true,
+    "uppercase": true,
+    "pop_scale": 1.06,
+    "safe_margin_ratio": 0.14,
+    "fixed_position": true,
+    "lexicon": {
+      "cloud": "Claude",
+      "claude": "Claude",
+      "anthropique": "Anthropic",
+      "antropic": "Anthropic",
+      "lia": "l'IA",
+      "gemini": "Gemini",
+      "gémini": "Gemini",
+      "chatgpt": "ChatGPT",
+      "openai": "OpenAI",
+      "youtube": "YouTube",
+      "tiktok": "TikTok"
+    }
+  },
+
+  "motion": {
+    "zoom_on_emphasis": true,
+    "zoom_scale": 1.07,
+    "zoom_ease_s": 0.28,
+    "punch_in_on_cut": false,
+    "emphasis_keywords": ["claude", "gemini", "openai", "chatgpt", "anthropic", "%", "euros", "millions", "jamais", "secret", "gratuit", "attention", "important"],
+    "emphasis_on_numbers": true,
+    "emphasis_min_gap_s": 8.0,
+    "max_zooms_per_min": 4,
+    "emphasis_require_punch": true,
+    "shake_on_impact": false
+  },
+
+  "broll": {
+    "enabled": false,
+    "provider": "pexels",
+    "max_per_minute": 6,
+    "duration_s": 2.2,
+    "only_on_illustrative_nouns": true
+  },
+
+  "sfx": {
+    "enabled": true,
+    "gain_db": -14,
+    "on_cut_transition": false,
+    "on_emphasis": true,
+    "on_intro": true,
+    "set": {
+      "whoosh": "whoosh.wav",
+      "impact": "impact.wav",
+      "pop": "pop.wav",
+      "riser": "riser.wav",
+      "click": "click.wav",
+      "ding": "ding.wav",
+      "boom": "boom.wav",
+      "transition": "transition.wav",
+      "notif": "notif.wav",
+      "subscribe": "subscribe.wav",
+      "vine_boom": "vine_boom.wav",
+      "record_scratch": "record_scratch.wav",
+      "bruh": "bruh.wav",
+      "sad_trombone": "sad_trombone.wav",
+      "airhorn": "airhorn.wav"
+    }
+  },
+
+  "overlays": {
+    "enabled": true,
+    "image_default_anim": "kenburns",
+    "image_default_mode": "card",
+    "diagram_stagger_s": 0.35,
+    "callout_style": "chip"
+  },
+
+  "cta": {
+    "channel_name": "TA CHAINE",
+    "subscribe_color": "#FF0033",
+    "auto_end_subscribe": true,
+    "auto_end_subscribe_s": 3.0,
+    "like_color": "#1E9BFF"
+  },
+
+  "color": {
+    "auto_correct": true,
+    "target_luma": 118,
+    "max_gain": 1.35,
+    "saturation": 1.06
+  },
+
+  "render": {
+    "keep_source_format": true,
+    "scale_to_height": null,
+    "fps": 30,
+    "crf": 18,
+    "audio_bitrate": "192k",
+    "codec": "h264"
+  },
+
+  "audio": {
+    "_comment": "VOIX EN AVANT : 'auto' = ears.py mesure la voix vs le fond sur le rendu ; si mediane < min_snr_db, separation Demucs (voice_up.py) et remix voix +voice_gain_db / fond bed_gain_db. true/false pour forcer.",
+    "voice_up": "auto",
+    "min_snr_db": 6.0,
+    "voice_gain_db": 5,
+    "bed_gain_db": -6
+  },
+
+  "review": {
+    "_comment": "Les YEUX (etapes 5-6 theyo). gemini_enabled + cle .env => brief avant montage et verdict apres livraison, integres a run.py. min_note = seuil DECISIONNEL : en dessous, gemini_review sort en erreur (exit 3) et la livraison est marquee NON LIVRABLE.",
+    "gemini_enabled": true,
+    "gemini_model": "gemini-2.5-flash",
+    "sample_frames": 9,
+    "min_note": 7,
+    "max_iterations": 3
+  }
+}

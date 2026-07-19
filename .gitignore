@@ -1,0 +1,10 @@
+.env
+work/
+livraisons/
+out/
+remotion/node_modules/
+remotion/public/media/
+remotion/public/music/
+remotion/public/cut.mp4
+__pycache__/
+*.pyc
