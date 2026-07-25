@@ -166,8 +166,7 @@ fleche, une fissure ou un pictogramme approximatif — ca se voit et c'est moche
 une VRAIE image et la decouper :
 - `fetch_media.py "<mots-cles>"` (photo reelle), `screenshot_web.py "<url>"` (page/fiche),
   artworks officiels du jeu (Steam), ou image generee (Canva/LM Arena, voir MINIATURE) ;
-- la DECOUPER proprement (fond transparent) : `cutout.py` detoure n'importe quel
-  visuel a fond uni (--grid 1x1 --cell 1,1), tue le moire d'une capture et upscale ;
+- la DECOUPER proprement si besoin (fond transparent, ffmpeg/PIL crop) ;
 - l'afficher en `image`/`card` a l'endroit VERIFIE a l'image.
 Les FX generatifs restent pour ce qu'un dessin code fait MIEUX qu'une image : la matiere
 et le mouvement plein cadre (pluie, glitch, flash, letterbox, speedlines, grain, shockwave).
@@ -357,8 +356,7 @@ epingle : uniquement sur ordre explicite. Apres publication : verifier l'apparit
 fetch_vfx, fetch_media, screenshot_web, fetch_youtube_clip, gemini_brief, gemini_review,
 local_review (juge local Ollama), omni_review (juge Qwen-Omni video+audio),
 check_delivery (QC mecanique final de la livraison),
-check_overlays (QC des overlays avant build), cutout (detourage d'une image
-pour illustrer), suggest_overlays,
+check_overlays (QC des overlays avant build), suggest_overlays,
 make_short, make_thumbnail, peek, listen, hear_all, dump_words, grab_clip, review,
 setup, common. `remotion/src/` : Reel, Overlays, FX, Thumbnail, font.
 Memoire projet : `projet-monteur.md` (historique des lecons, tenir a jour).
