@@ -160,6 +160,19 @@ Chaque evenement = un moment VERIFIE a l'image (regle 2). La palette :
   `no_vary` — combo malchance : meme son x3 rapproche, max 2/video). Son manquant ->
   `fetch_sfx.py --search "..."` (Mixkit/Myinstants, filtre qualite + dedup MD5).
 - **Zooms/secousses** : `zoom_extra` manuels, rares et justifies.
+**ILLUSTRER AVEC DE VRAIES IMAGES, PAS DES GRIBOUILLIS (exigence utilisateur)** : pour
+DESIGNER ou ILLUSTRER quelque chose, ne jamais dessiner a la main en code un cercle, une
+fleche, une fissure ou un pictogramme approximatif — ca se voit et c'est moche. Prendre
+une VRAIE image et la decouper :
+- `fetch_media.py "<mots-cles>"` (photo reelle), `screenshot_web.py "<url>"` (page/fiche),
+  artworks officiels du jeu (Steam), ou image generee (Canva/LM Arena, voir MINIATURE) ;
+- la DECOUPER proprement (fond transparent) : `cutout.py` detoure n'importe quel
+  visuel a fond uni (--grid 1x1 --cell 1,1), tue le moire d'une capture et upscale ;
+- l'afficher en `image`/`card` a l'endroit VERIFIE a l'image.
+Les FX generatifs restent pour ce qu'un dessin code fait MIEUX qu'une image : la matiere
+et le mouvement plein cadre (pluie, glitch, flash, letterbox, speedlines, grain, shockwave).
+Regle simple : **un OBJET/SUJET -> une image decoupee ; une AMBIANCE/un MOUVEMENT -> un FX.**
+
 REGLES : l'effet sert l'EMOTION (fail->crack/glitch/shake ; win->confetti/shockwave ;
 drame->rain/letterbox/heartbeat ; attention->circle/focus_lines/target_lock). **VARIER
 entre les videos** (chaque video a SA palette, la noter dans DECISIONS.md). Un effet
@@ -167,6 +180,7 @@ inedit ? LE CODER dans `remotion/src/FX.tsx` : pattern `({p, durF})`, defauts
 `p.x ?? 0.5`, `random('seed')` (JAMAIS Math.random), fractions d'ecran, enregistrer dans
 REGISTRY, valider par un still, documenter. Un effet ne double jamais un callout au meme
 endroit : il le REMPLACE.
+
 
 ### 6. Fabriquer et VALIDER avant le rendu long
 ```
@@ -284,6 +298,8 @@ Tout le reste (matiere de travail, pas de livraison) va dans `work/<nom>/` :
 Ces deux fichiers servent a l'etape 9 (publication) ; ils ne sont jamais copies dans
 `livraisons/`.
 **DERNIER GESTE OBLIGATOIRE — le QC mecanique** :
+`python scripts/check_overlays.py work/<nom>` AVANT le build (elements empiles,
+durees aberrantes) puis, sur la livraison :
 `python scripts/check_delivery.py livraisons/<nom>` verifie ce que l'oeil oublie :
 structure minimale, kebab-case, noirs en tete/queue, CLIPPING audio (deja attrape un
 0 dB sur une vraie livraison), loudness ~-16, miniature 1280x720 <2MB, shorts <=20s
@@ -340,7 +356,9 @@ epingle : uniquement sur ordre explicite. Apres publication : verifier l'apparit
 `scripts/` : run, transcribe, plan, build_cut, render, add_music, fetch_music, fetch_sfx,
 fetch_vfx, fetch_media, screenshot_web, fetch_youtube_clip, gemini_brief, gemini_review,
 local_review (juge local Ollama), omni_review (juge Qwen-Omni video+audio),
-check_delivery (QC mecanique final de la livraison), suggest_overlays,
+check_delivery (QC mecanique final de la livraison),
+check_overlays (QC des overlays avant build), cutout (detourage d'une image
+pour illustrer), suggest_overlays,
 make_short, make_thumbnail, peek, listen, hear_all, dump_words, grab_clip, review,
 setup, common. `remotion/src/` : Reel, Overlays, FX, Thumbnail, font.
 Memoire projet : `projet-monteur.md` (historique des lecons, tenir a jour).

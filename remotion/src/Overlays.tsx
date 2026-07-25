@@ -348,7 +348,8 @@ const LikeBurst: React.FC<{item: Item; width: number; height: number; durF: numb
 };
 
 // Incrustation d'un EXTRAIT video (grab_clip.py) — petit ou grand, ou l'on veut.
-// params : x,y (centre, fractions), w (largeur, fraction), label, border, radius, muted,
+// params : x,y (centre, fractions), w (largeur, fraction), label, label_pos ('bottom'
+// defaut | 'top' — pour ne pas chevaucher les sous-titres), border, radius, muted,
 // volume (0..1), shadow. Tout modifiable.
 const ClipPiP: React.FC<{item: Item; width: number; height: number; durF: number}> = ({
   item, width, height, durF,
@@ -373,10 +374,12 @@ const ClipPiP: React.FC<{item: Item; width: number; height: number; durF: number
           volume={p.volume ?? 1}
           style={{width: '100%', display: 'block'}} />
         {p.label ? <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, textAlign: 'center',
+          position: 'absolute', left: 0, right: 0, textAlign: 'center',
+          ...(p.label_pos === 'top'
+            ? {top: 0, background: 'linear-gradient(rgba(0,0,0,0.75), transparent)'}
+            : {bottom: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.75))'}),
           fontFamily: 'CaptionFont, sans-serif', fontWeight: 800, color: '#fff',
           fontSize: w * 0.055, padding: `${w * 0.02}px 0`,
-          background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
         }}>{p.label}</div> : null}
       </div>
     </AbsoluteFill>
@@ -412,6 +415,80 @@ const Card: React.FC<{item: Item; width: number; height: number; durF: number}> 
         {p.title ? <div style={{fontSize: fs, fontWeight: 800, color: p.accent ?? '#FFE500'}}>{p.title}</div> : null}
         {p.sub ? <div style={{fontSize: fs * 0.55, opacity: 0.85}}>{p.sub}</div> : null}
       </div>
+    </AbsoluteFill>
+  );
+};
+
+// ---------- SPRITE : une image DECOUPEE et VIVANTE (jamais une image posee) ----------
+// Un sprite entre, vit, et sort. Trois couches independantes et combinables :
+//   enter : 'slide-left'|'slide-right'|'slide-bottom'|'drop'|'pop'|'spin'|'grow'  (defaut pop)
+//   idle  : 'bob'|'breathe'|'shake'|'sway'|'zoom-in'|'none'                        (defaut bob)
+//   exit  : 'slide-out'|'shrink'|'pop-out'|'fall'                                  (defaut = miroir de enter)
+// params : name (cle de media/index.json), x,y (ancre, fractions), size (fraction de la
+// HAUTEUR d'ecran, defaut 0.34), flip, rotate (deg fixe), enter, idle, exit, intensity.
+// Un seul sprite anime a la fois -> impose par check_overlays.py, jamais a l'oeil.
+const Sprite: React.FC<{item: Item; width: number; height: number; durF: number}> = ({
+  item, width, height, durF,
+}) => {
+  const {fps} = useVideoConfig();
+  const f = useCurrentFrame();
+  const p = item.params || {};
+  const inten = p.intensity ?? 1;
+  const enter = p.enter ?? 'pop';
+  const idle = p.idle ?? 'bob';
+  const exit = p.exit ?? (enter.startsWith('slide') ? 'slide-out' : 'pop-out');
+
+  const h = height * (p.size ?? 0.34);
+  const x = width * (p.x ?? 0.82);
+  const y = height * (p.y ?? 0.72);
+
+  // --- ENTREE (ressort : ca rebondit, ca ne glisse pas platement) ---
+  const s = spring({frame: f, fps, config: {damping: 12, stiffness: 170, mass: 0.9}});
+  let ex = 0, ey = 0, escale = 1, erot = 0, op = 1;
+  if (enter === 'slide-left') ex = interpolate(s, [0, 1], [-width * 0.55, 0]);
+  else if (enter === 'slide-right') ex = interpolate(s, [0, 1], [width * 0.55, 0]);
+  else if (enter === 'slide-bottom') ey = interpolate(s, [0, 1], [height * 0.6, 0]);
+  else if (enter === 'drop') ey = interpolate(s, [0, 1], [-height * 0.6, 0]);
+  else if (enter === 'spin') { escale = s; erot = interpolate(s, [0, 1], [-220, 0]); }
+  else if (enter === 'grow') escale = interpolate(s, [0, 1], [0.05, 1]);
+  else { escale = s; op = interpolate(f, [0, 4], [0, 1], ease); } // pop
+
+  // --- SORTIE (les 10 dernieres frames) ---
+  const o = interpolate(f, [durF - 10, durF], [0, 1], ease);
+  let xx = 0, yy = 0, sscale = 1;
+  if (o > 0) {
+    if (exit === 'slide-out') xx = o * width * 0.6 * (enter === 'slide-left' ? -1 : 1);
+    else if (exit === 'fall') { yy = o * height * 0.7; }
+    else if (exit === 'shrink') sscale = 1 - o;
+    else sscale = 1 - o * o; // pop-out
+  }
+
+  // --- IDLE : ce qui rend le sprite VIVANT pendant qu'il est a l'ecran ---
+  const t = f / fps;
+  let ix = 0, iy = 0, iscale = 1, irot = 0;
+  if (idle === 'bob') iy = Math.sin(t * 4.2) * height * 0.012 * inten;
+  else if (idle === 'breathe') iscale = 1 + Math.sin(t * 3.1) * 0.035 * inten;
+  else if (idle === 'shake') {
+    ix = Math.sin(t * 42) * width * 0.006 * inten;
+    iy = Math.cos(t * 37) * height * 0.005 * inten;
+    irot = Math.sin(t * 40) * 2.5 * inten;
+  } else if (idle === 'sway') irot = Math.sin(t * 2.6) * 5 * inten;
+  else if (idle === 'zoom-in') iscale = interpolate(f, [0, durF], [1, 1 + 0.25 * inten], ease);
+
+  const scale = Math.max(0, escale * sscale * iscale);
+  const rot = erot + irot + (p.rotate ?? 0);
+  return (
+    <AbsoluteFill style={{pointerEvents: 'none'}}>
+      <Img
+        src={staticFile(`media/${p.name}.png`)}
+        style={{
+          position: 'absolute', left: x, top: y, height: h, width: 'auto',
+          transform: `translate(-50%,-50%) translate(${ex + xx + ix}px, ${ey + yy + iy}px) `
+            + `scale(${scale}) rotate(${rot}deg) scaleX(${p.flip ? -1 : 1})`,
+          opacity: op,
+          filter: 'drop-shadow(0 12px 26px rgba(0,0,0,0.45))',
+        }}
+      />
     </AbsoluteFill>
   );
 };
@@ -455,6 +532,7 @@ export const Overlays: React.FC<{overlays: Item[]; width: number; height: number
         else if (item.type === 'like') node = <LikeBurst {...common} />;
         else if (item.type === 'clip') node = <ClipPiP {...common} />;
         else if (item.type === 'card') node = <Card {...common} />;
+        else if (item.type === 'sprite') node = <Sprite {...common} />;
         else return null;
         return (
           <Sequence key={i} from={from} durationInFrames={durF} layout="none">
