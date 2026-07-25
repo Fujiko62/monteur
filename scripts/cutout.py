@@ -122,6 +122,53 @@ def keep_sprite_only(fg, near_px=28, min_ratio=0.03):
     return keep
 
 
+def erode(mask, n=1):
+    """Retire les n pixels du bord du masque : ces pixels-la contiennent un MELANGE
+    sujet+fond (le liseré clair qu'on voit autour d'un detourage rate). Les jeter donne
+    un bord net."""
+    for _ in range(n):
+        m = mask.copy()
+        m[1:, :] &= mask[:-1, :]
+        m[:-1, :] &= mask[1:, :]
+        m[:, 1:] &= mask[:, :-1]
+        m[:, :-1] &= mask[:, 1:]
+        mask = m
+    return mask
+
+
+def ai_upscale(rgb_im, scale=4, model="realesr-animevideov3-x4"):
+    """Upscale IA de la COULEUR (Real-ESRGAN ncnn, gratuit, GPU).
+    - Recoit l'image a sa taille SOURCE : lui donner un agrandissement deja flou gache tout.
+    - Modele 'animevideov3' et PAS 'x4plus-anime' : compare a l'oeil, ce dernier
+      sur-durcit et creuse des encoches dans les cheveux/le nez.
+    - JAMAIS l'alpha : l'IA transforme un contour en marches d'escalier. La silhouette
+      est agrandie a part (Lanczos), ce qui donne un bord lisse.
+    Retourne None si le binaire est absent (l'appelant retombe sur Lanczos)."""
+    exe = os.path.join(ROOT, "tools", "realesrgan", "realesrgan-ncnn-vulkan.exe")
+    if not os.path.exists(exe):
+        return None
+    import subprocess
+    import tempfile
+    d = tempfile.mkdtemp(prefix="cutout_")
+    src, dst = os.path.join(d, "in.png"), os.path.join(d, "out.png")
+    rgb_im.save(src)
+    subprocess.run([exe, "-i", src, "-o", dst, "-n", model, "-s", str(scale)],
+                   capture_output=True, text=True, cwd=os.path.dirname(exe))
+    if not os.path.exists(dst):
+        return None
+    out = Image.open(dst).convert("RGB")
+    out.load()
+    return out
+
+
+def bottom_is_cut(alpha, tol=0.08):
+    """Vrai si le sprite est TRANCHE en bas (buste coupe par le cadre du jeu) : sa
+    derniere ligne est pleine sur une large portion. Un tel sprite ne doit jamais
+    flotter au milieu de l'ecran — la ligne de coupe se verrait."""
+    last = alpha[-1] > 0
+    return last.sum() >= tol * (alpha.shape[1])
+
+
 def clean_sprite(im, scale=4):
     """Photo d'ecran -> sprite PNG transparent net."""
     # 1. anti-moire AVANT tout : la moire est un bruit haute frequence regulier,
@@ -132,14 +179,17 @@ def clean_sprite(im, scale=4):
     rgb = np.array(im.convert("RGB"))
     bg = flood_from_border(background_mask(rgb))
     fg = keep_sprite_only(~bg)
+    # bord net : on jette la couronne de pixels melanges sujet+fond (liseré clair)
+    fg = erode(fg, 1)
     alpha = np.where(fg, 255, 0).astype(np.uint8)
 
     ys, xs = np.where(alpha > 0)
     if len(ys) == 0:
         return None
-    # marge de 2 px puis recadrage serre sur le sprite
-    y0, y1 = max(0, ys.min() - 2), min(alpha.shape[0], ys.max() + 3)
-    x0, x1 = max(0, xs.min() - 2), min(alpha.shape[1], xs.max() + 3)
+    # recadrage EXACTEMENT sur le sujet (aucune marge : une marge transparente fausse
+    # l'ancrage au bord de l'ecran cote Remotion)
+    y0, y1 = ys.min(), ys.max() + 1
+    x0, x1 = xs.min(), xs.max() + 1
 
     out = Image.fromarray(np.dstack([rgb, alpha]), "RGBA").crop((x0, y0, x1, y1))
     r, g, b, a = out.split()
@@ -153,16 +203,17 @@ def clean_sprite(im, scale=4):
     #    sans arrondir les angles ; 13 commence a manger la bouche et les meches.
     k = 3 if max(flat.size) < 200 else (5 if max(flat.size) < 265 else 9)
     flat = flat.filter(ImageFilter.MedianFilter(size=k))
-    out = Image.merge("RGBA", (*flat.split(), a))
-    # 3. upscale : Lanczos sur des aplats = bords propres, puis on redurcit
-    out = out.resize((out.width * scale, out.height * scale), Image.LANCZOS)
-    r, g, b, a = out.split()
-    rgb_i = Image.merge("RGB", (r, g, b)).filter(
-        ImageFilter.UnsharpMask(radius=3, percent=110, threshold=2))
-    # alpha durci : pas de halo semi-transparent autour du sprite
-    a = a.point(lambda v: 0 if v < 110 else 255).filter(ImageFilter.SMOOTH)
-    out = Image.merge("RGBA", (*rgb_i.split(), a))
-    return out
+    # 3. COULEUR : upscale IA (repli Lanczos + rehaussement si le binaire manque)
+    col = ai_upscale(flat, scale)
+    if col is None:
+        col = flat.resize((flat.width * scale, flat.height * scale), Image.LANCZOS)
+        col = col.filter(ImageFilter.UnsharpMask(radius=3, percent=110, threshold=2))
+
+    # 4. SILHOUETTE : agrandie a part puis re-seuillee au milieu -> contour lisse et
+    #    anti-crenele (ni escalier, ni halo translucide autour du sujet).
+    a = a.resize(col.size, Image.LANCZOS).point(lambda v: 0 if v < 128 else 255)
+    a = a.filter(ImageFilter.GaussianBlur(0.9))
+    return Image.merge("RGBA", (*col.split(), a))
 
 
 def preview(path, grid):
@@ -218,6 +269,9 @@ def main():
         "emotion": a.emotion or parts[0],
         "pose": a.pose or "-".join(parts[1:]),
         "w": sprite.width, "h": sprite.height,
+        # buste tranche par le cadre du jeu -> il DOIT etre ancre a un bord de l'ecran,
+        # sinon la ligne de coupe se voit (exigence utilisateur)
+        "cut_bottom": bool(bottom_is_cut(np.array(sprite.split()[3]))),
         "source": f"{os.path.basename(a.planche)} {a.grid} cell {a.cell}",
     }
     json.dump(idx, open(idx_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)

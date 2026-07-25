@@ -441,27 +441,40 @@ const Sprite: React.FC<{item: Item; width: number; height: number; durF: number}
   const exit = p.exit ?? (enter === 'drop' ? 'rise'
     : enter === 'slide-bottom' ? 'fall'
     : enter.startsWith('slide') ? 'slide-out' : 'pop-out');
-
+  // ANCRAGE : une image DECOUPEE est souvent tranchee par le cadre d'origine. La
+  // laisser flotter au milieu de l'ecran montre cette ligne de coupe nette -> interdit.
+  // Par defaut ils sont donc colles a un BORD, la coupe passant hors cadre.
+  //   anchor 'bottom' (defaut) : monte depuis le bas de l'ecran
+  //   anchor 'left'/'right'    : entre par un cote, coupe hors cadre en bas aussi
+  //   anchor 'free'            : flottant — RESERVE aux visuels non tranches
+  const anchor = p.anchor ?? 'bottom';
+  // ancre au bord -> l'entree ne peut venir que de CE bord (sinon on verrait la coupe
+  // traverser l'ecran). On force la coherence plutot que de faire confiance a l'auteur.
+  const enterEff = anchor === 'bottom' && !['slide-bottom', 'grow', 'pop'].includes(enter)
+    ? 'slide-bottom'
+    : anchor === 'left' ? 'slide-left' : anchor === 'right' ? 'slide-right' : enter;
   const h = height * (p.size ?? 0.34);
   const x = width * (p.x ?? 0.82);
-  const y = height * (p.y ?? 0.72);
+  // en ancre, y = de combien le sujet DEPASSE le bord (0.06 = 6 % de sa hauteur cachee)
+  const bleed = h * (p.bleed ?? 0.06);
+  const y = anchor === 'free' ? height * (p.y ?? 0.72) : height - h / 2 + bleed;
 
   // --- ENTREE (ressort : ca rebondit, ca ne glisse pas platement) ---
   const s = spring({frame: f, fps, config: {damping: 12, stiffness: 170, mass: 0.9}});
   let ex = 0, ey = 0, escale = 1, erot = 0, op = 1;
-  if (enter === 'slide-left') ex = interpolate(s, [0, 1], [-width * 0.55, 0]);
-  else if (enter === 'slide-right') ex = interpolate(s, [0, 1], [width * 0.55, 0]);
-  else if (enter === 'slide-bottom') ey = interpolate(s, [0, 1], [height * 0.6, 0]);
-  else if (enter === 'drop') ey = interpolate(s, [0, 1], [-height * 0.6, 0]);
-  else if (enter === 'spin') { escale = s; erot = interpolate(s, [0, 1], [-220, 0]); }
-  else if (enter === 'grow') escale = interpolate(s, [0, 1], [0.05, 1]);
+  if (enterEff === 'slide-left') ex = interpolate(s, [0, 1], [-width * 0.55, 0]);
+  else if (enterEff === 'slide-right') ex = interpolate(s, [0, 1], [width * 0.55, 0]);
+  else if (enterEff === 'slide-bottom') ey = interpolate(s, [0, 1], [height * 0.6, 0]);
+  else if (enterEff === 'drop') ey = interpolate(s, [0, 1], [-height * 0.6, 0]);
+  else if (enterEff === 'spin') { escale = s; erot = interpolate(s, [0, 1], [-220, 0]); }
+  else if (enterEff === 'grow') escale = interpolate(s, [0, 1], [0.05, 1]);
   else { escale = s; op = interpolate(f, [0, 4], [0, 1], ease); } // pop
 
   // --- SORTIE (les 10 dernieres frames) ---
   const o = interpolate(f, [durF - 10, durF], [0, 1], ease);
   let xx = 0, yy = 0, sscale = 1;
   if (o > 0) {
-    if (exit === 'slide-out') xx = o * width * 0.6 * (enter === 'slide-left' ? -1 : 1);
+    if (exit === 'slide-out') xx = o * width * 0.6 * (enterEff === 'slide-left' ? -1 : 1);
     else if (exit === 'fall') { yy = o * height * 0.7; }
     else if (exit === 'rise') { yy = -o * height * 0.7; }
     else if (exit === 'shrink') sscale = 1 - o;
@@ -488,6 +501,7 @@ const Sprite: React.FC<{item: Item; width: number; height: number; durF: number}
         src={staticFile(`media/${p.name}.png`)}
         style={{
           position: 'absolute', left: x, top: y, height: h, width: 'auto',
+          transformOrigin: anchor === 'free' ? 'center' : 'center bottom',
           transform: `translate(-50%,-50%) translate(${ex + xx + ix}px, ${ey + yy + iy}px) `
             + `scale(${scale}) rotate(${rot}deg) scaleX(${p.flip ? -1 : 1})`,
           opacity: op,
