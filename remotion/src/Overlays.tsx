@@ -436,7 +436,11 @@ const Sprite: React.FC<{item: Item; width: number; height: number; durF: number}
   const inten = p.intensity ?? 1;
   const enter = p.enter ?? 'pop';
   const idle = p.idle ?? 'bob';
-  const exit = p.exit ?? (enter.startsWith('slide') ? 'slide-out' : 'pop-out');
+  // Sortie par defaut = MIROIR de l'entree : un sprite tombe d'en haut repart en HAUT.
+  // (Le laisser continuer vers le bas le fait traverser le contenu — vu et corrige.)
+  const exit = p.exit ?? (enter === 'drop' ? 'rise'
+    : enter === 'slide-bottom' ? 'fall'
+    : enter.startsWith('slide') ? 'slide-out' : 'pop-out');
 
   const h = height * (p.size ?? 0.34);
   const x = width * (p.x ?? 0.82);
@@ -459,6 +463,7 @@ const Sprite: React.FC<{item: Item; width: number; height: number; durF: number}
   if (o > 0) {
     if (exit === 'slide-out') xx = o * width * 0.6 * (enter === 'slide-left' ? -1 : 1);
     else if (exit === 'fall') { yy = o * height * 0.7; }
+    else if (exit === 'rise') { yy = -o * height * 0.7; }
     else if (exit === 'shrink') sscale = 1 - o;
     else sscale = 1 - o * o; // pop-out
   }
