@@ -93,6 +93,15 @@ A l'oreille si besoin : `python scripts/listen.py "<video>" <start> <end>` (Gemi
 paroles/sons/emotion, utile pour couper PILE entre une punchline et la suite).
 
 ### 4. Ecrire la coupe A LA MAIN (jamais au silence sur du gameplay)
+**REGLE DE SOUPLESSE (exigence utilisateur — erreur repetee a corriger) : par defaut,
+GARDER PLUS plutot que couper court.** Le piege n'est pas de faire une video trop
+longue, c'est de trancher trop serre et de perdre le CONTEXTE qui rend la suite
+comprehensible. Symptome vu en pratique : une reponse gardee sans sa question, un
+"il"/"ça" sans antecedent, une blague sans sa mise en place, une phrase coupee en deux
+par une coupe qui tombe pile dedans. Le spectateur qui n'a pas vu le rush ne doit JAMAIS
+sentir qu'il manque un bout. Dans le doute entre deux frontieres de coupe -> prendre la
+plus LARGE. Mieux vaut une scene 5s plus longue mais complete qu'une scene courte et
+trouee.
 Ecrire directement `work/<nom>/plan.json` -> `keep_segments` en temps ORIGINAUX :
 - Scenes ENTIERES : commencer ~1s avant la 1re parole, finir 1.5-2s apres la chute
   (la reaction fait partie de la blague). Jamais tronquer un moment fun.
@@ -100,7 +109,7 @@ Ecrire directement `work/<nom>/plan.json` -> `keep_segments` en temps ORIGINAUX 
   (TOUJOURS, verifier a l'image : MANIFESTE/DEPLOIEMENT/RECHERCHE/ecrans noirs —
   `ffmpeg blackdetect` les trouve), retakes (garder la derniere prise), et la parole
   creuse SI isolee et rattachee a rien (JAUGER : jamais couper du contexte — si une
-  phrase prepare ou paie une autre scene, elle reste).
+  phrase prepare ou paie une autre scene, elle reste. Dans le doute -> GARDER).
 - **ACCELERES (timelapse)** : un long moment de gameplay repetitif SANS action (farm,
   trajet, construction, fouille lente) ne se coupe pas forcement — on peut le GARDER en
   accelere : `{"start":t0,"end":t1,"speed":8}` dans keep_segments (speed 4-16 selon la
@@ -120,10 +129,41 @@ Ecrire directement `work/<nom>/plan.json` -> `keep_segments` en temps ORIGINAUX 
   (jamais en dupliquant un segment dans keep_segments — le remap des sous-titres
   prendrait la 1re occurrence et se decalerait). Le teaser s'arrete AVANT la chute :
   on montre la tension, pas la resolution.
-- Cible indicative : 30 min de rush -> 8-12 min. Une intro = UNE prise nette.
+- Cible indicative SEULEMENT (30 min de rush -> 8-12 min) : ce n'est PAS un objectif a
+  forcer. Si respecter la coherence demande de garder plus -> la duree suit, elle ne
+  dicte jamais la coupe. Une intro = UNE prise nette.
 `config.override.json` type gameplay : `color.auto_correct false`, sfx whoosh
 `cut_min_gap_s 25` gain -20, `zoom/emphasis auto OFF` (source d'aleatoire — tout manuel),
 `captions.mode "always"` position bottom (accessibilite, preset "clean" par defaut).
+
+### 4 bis. VERIFIER LA COHERENCE DU RECIT GARDE (etape OBLIGATOIRE, jamais sautee)
+**C'est l'etape qui manque quand un montage "ne se comprend pas" alors que chaque coupe
+prise separement semblait raisonnable (erreur repetee, exigence utilisateur — corriger
+DEFINITIVEMENT, pas juste "faire attention" la prochaine fois).** Une coupe qui a l'air
+bien en isolation peut quand meme casser le fil : le probleme n'est visible qu'en lisant
+la suite de TOUT ce qui reste, dans l'ordre, comme le spectateur qui n'a jamais vu le
+rush brut.
+```
+python scripts/reconstruct_script.py work/<nom>
+```
+Reconstruit le texte EXACT que le spectateur va entendre (uniquement les mots des
+`keep_segments`), avec chaque coupe rendue explicite `[COUPE Xs — contenu retire: "..."]`.
+1. **Detection automatique des coupes en pleine phrase** (le script la fait seul, pas
+   besoin de jugement) : si le mot de reprise commence par une minuscule ou que le
+   dernier mot garde ne finit pas par `.!?` alors que la suite continue en minuscule ->
+   FLAG. C'est un bug objectif : etendre le `keep_segment` jusqu'a la frontiere de
+   phrase reelle (silence naturel ou ponctuation), jamais laisser passer.
+2. **LIRE le script reconstruit EN ENTIER** (pas en diagonale) et pour chaque
+   `[COUPE...]` restant, verifier : le segment d'apres reference-t-il quelque chose dans
+   le `[COUPE...]` (pronom "il/ça/elle" sans antecedent garde, "comme je disais",
+   reponse a une question posee avant la coupe, blague/callback sans sa mise en place) ?
+   Si oui -> soit ETENDRE le keep_segment pour englober le contexte manquant (regle de
+   souplesse ci-dessus), soit ajouter un `card`/`callout` bref qui donne l'info
+   manquante a l'ecran (ex: carte "CONTEXTE : il vient de trouver la carte au tresor").
+3. Corriger `plan.json`, RELANCER le script, RELIRE. Boucler jusqu'a ce que le recit
+   garde se tienne SEUL, sans avoir besoin du rush brut en tete pour le comprendre.
+Ne passer a l'habillage (etape 5) qu'une fois ce script propre — comme les autres QC du
+pipeline (check_overlays, check_delivery), ce n'est pas une suggestion.
 
 ### 5. Habiller (overlays.json, time_base "original")
 Chaque evenement = un moment VERIFIE a l'image (regle 2). La palette :
@@ -146,6 +186,14 @@ Chaque evenement = un moment VERIFIE a l'image (regle 2). La palette :
   Densite cible d'habillage : un moment visuel (FX, image, clip, stat, card) toutes les
   20-40 s en ton fun — jamais 2 min nues sauf tension voulue ; chaque ajout reste
   justifie par le sens (regle 5), la densite ne l'emporte jamais sur la pertinence.
+  **Ne pas sur-filtrer les images (exigence utilisateur, erreur repetee)** : une image
+  DECOUPEE BRUTE (fetch_media direct, meme sans retouche fine) vaut MIEUX que pas
+  d'image du tout. La barre pour ajouter une illustration est BASSE — verifier qu'elle
+  correspond au sujet (piege #12 : jamais de hors-sujet sans l'avoir VU), pas qu'elle
+  soit parfaite.
+  Reserver le passage Canva/LM Arena (poli, retouche) a la MINIATURE et aux 2-3 moments
+  les plus forts de la video ; pour le reste, un crop simple + `card`/`image` suffit et
+  vaut mieux que l'absence.
 - **ZOOMS CIBLES dynamiques** (exigence utilisateur) : quand un element DONT IL PARLE
   est AFFICHE a l'ecran (compteur d'argent a recolter, objectif, timer, item, score...),
   on zoome DESSUS, pas betement au centre : `zoom_extra`
@@ -356,7 +404,8 @@ epingle : uniquement sur ordre explicite. Apres publication : verifier l'apparit
 fetch_vfx, fetch_media, screenshot_web, fetch_youtube_clip, gemini_brief, gemini_review,
 local_review (juge local Ollama), omni_review (juge Qwen-Omni video+audio),
 check_delivery (QC mecanique final de la livraison),
-check_overlays (QC des overlays avant build), suggest_overlays,
+check_overlays (QC des overlays avant build), reconstruct_script (coherence du
+recit garde — etape 4 bis, OBLIGATOIRE), suggest_overlays,
 make_short, make_thumbnail, peek, listen, hear_all, dump_words, grab_clip, review,
 setup, common. `remotion/src/` : Reel, Overlays, FX, Thumbnail, font.
 Memoire projet : `projet-monteur.md` (historique des lecons, tenir a jour).
