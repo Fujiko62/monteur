@@ -398,6 +398,68 @@ epingle : uniquement sur ordre explicite. Apres publication : verifier l'apparit
     pixels : `circle width 5` = trait de 6400 px = ecran entierement peint (vecu).
     Relire le commentaire `// params:` de l'effet avant de le parametrer ; le still de
     validation attrape ce genre d'erreur — c'est exactement pour ca qu'il est obligatoire.
+14. `config.override.json` DOIT etre exactement a `work/<nom>/config.override.json` —
+    ailleurs, il est ignore EN SILENCE (sous-titres a zero / mauvaise couleur decouverts
+    un build entier plus tard, vecu). CORRIGE : `load_config()` logge desormais toujours
+    "override applique (<chemin>)" ou "AUCUN override trouve a <chemin>" — LIRE cette
+    ligne apres chaque build_cut/render, jamais supposer que l'override a ete pris.
+15. Les FX textuels (big_stat, stat_panel, title_card...) heritent maintenant TOUS de
+    `da.accent` par defaut (corrige structurellement dans Overlays.tsx — avant, seul
+    title_card le recevait, big_stat sortait violet par defaut meme sur une DA verte,
+    vecu). Ne plus jamais avoir besoin de repeter `"accent": "#..."` dans chaque overlay
+    pour rester dans la charte : ne le faire que pour un ecart volontaire et justifie.
+16. Rendu Remotion "No frame found at position" APRES un recut : le SERVEUR Remotion
+    cache les fichiers par URL, pas par contenu — `cut.mp4` change mais l'URL non, il
+    sert l'ancien fichier plus court (vecu, 9 dossiers de cache perimes retrouves a la
+    main). CORRIGE : `render.py` purge maintenant ce cache AVANT CHAQUE rendu tout seul.
+    Si l'erreur revient quand meme, verifier `MONTEUR_TMP` (le cache peut vivre ailleurs
+    si la variable a change entre deux sessions).
+17. Gemini LIT MAL le texte a l'ecran (sous-titres, petites etiquettes de HUD) sur le
+    proxy 720p compresse qu'on lui envoie — un reproche du type "mots colles"/"faute
+    d'orthographe" DOIT etre verifie contre `captions.json` AVANT d'etre corrige (vecu :
+    2 runs Gemini consecutifs ont cite des defauts de texte qui n'existaient pas dans le
+    fichier reel). Ses reproches de RYTHME/AMBIANCE/COULEUR restent fiables ; seule la
+    LECTURE fine de petit texte sur le proxy compresse est a verifier avant d'agir.
+18. Ne JAMAIS "brider par prudence" une valeur AUTO-CALCULEE (ex: gamma de correction
+    couleur) sans preuve visuelle concrete (still) qu'elle pose un vrai probleme —
+    revenir dessus par simple impression subjective a coute un aller-retour de review
+    complet (vecu : gamma auto 1.35 bride a 1.18 "au cas ou", Gemini l'a repere et il a
+    fallu revenir en arriere). Le calcul automatique est deja cale sur la video ; ne le
+    corriger qu'avec une raison verifiee a l'image, jamais par prudence generique.
+19. Attendre un rendu long : ne JAMAIS deviner par la taille du fichier de sortie
+    (Remotion l'ecrit progressivement, un fichier "stable" peut etre un ANCIEN rendu
+    inchange pendant qu'un process tue n'a rien ecrit du tout — vecu, un faux "termine"
+    a ete detecte sur un fichier d'une session precedente). Attendre la fin REELE du
+    process (exit code) ou grep le marqueur final explicite du script (`OK: <chemin>` ou
+    l'erreur) dans son log — jamais un heuristique sur la taille ou l'existence du fichier.
+
+## MODE AUTONOME — MONTER EN UN SEUL PROMPT (exigence utilisateur)
+L'objectif : donner la video et dire `/monteur`, et obtenir la livraison finie SANS
+avoir besoin de relancer, de repreter une consigne deja donnee, ou de dire "continue" a
+cause d'une erreur evitable. Ce n'est pas un vœu, c'est un objectif de conception —
+chaque piege ci-dessus qui se reproduit est un echec de cet objectif, pas un accident.
+- **Rien de bloquant hors publication** (principe 4) : ne jamais interrompre le
+  pipeline pour demander une confirmation intermediaire evitable — les choix ambigus
+  se tranchent avec le meilleur jugement (documente dans DECISIONS.md), pas en pausant.
+- **Bien du premier coup > corriger apres** : un rendu complet coute 10-50 min. Avant
+  de lancer le PREMIER rendu long, multiplier les stills de validation (chaque overlay,
+  chaque zoom, chaque couleur) pour attraper le maximum de defauts a ce stade — pas
+  apres un rendu complet. Chaque rendu complet evitable est du temps (et un risque de
+  tomber a court d'usage en session) en moins.
+- **Face a un verdict IA (Gemini/local) : FACT-CHECKER avant d'agir, pas apres.** Pour
+  chaque reproche cite, verifier contre les fichiers reels (`captions.json`,
+  `props.json`, `overlays.json`) AVANT de decider une correction. Grouper TOUTES les
+  corrections confirmees en UN seul rebuild, jamais un rebuild par reproche. Un verdict
+  qui se contredit d'un run a l'autre (deja vu : "zooms trop frequents" puis "aucun
+  zoom" sur le meme montage) est un signal que le juge s'est trompe, pas que le montage
+  a change — verifier les FAITS, ne jamais suivre une note a l'aveugle (principe 3).
+- **Chaque etape longue (transcription, rendu) tourne en arriere-plan et se surveille
+  par son marqueur de fin explicite**, jamais par sondage de fichier (piege #19).
+- **Reprise instantanee apres une coupure (limite d'usage, fin de session)** : l'etat
+  du pipeline se lit entierement dans `work/<nom>/` (words.json fait -> pas retranscrire ;
+  plan.json + cut.mp4 + offsets.json presents -> `--skip-cut` ; props.json present ->
+  overlays deja poses ; render.mp4 present -> pas rerendre). Ne jamais redemander a
+  l'utilisateur "ou j'en etais" : le disque le dit.
 
 ## FICHIERS DE REFERENCE
 `scripts/` : run, transcribe, plan, build_cut, render, add_music, fetch_music, fetch_sfx,

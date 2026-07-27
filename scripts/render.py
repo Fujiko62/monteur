@@ -3,6 +3,7 @@
 Usage: python render.py <work_dir> <output.mp4>
 """
 import argparse
+import glob
 import os
 import shutil
 import subprocess
@@ -10,6 +11,23 @@ import sys
 from common import ROOT, log, die, load_json
 
 REMOTION = os.path.join(ROOT, "remotion")
+
+
+def purge_asset_cache(tmp):
+    """Remotion garde en cache les fichiers servis par son serveur local, INDEXES PAR
+    URL (`http://localhost:3000/public/cut.mp4`) — pas par contenu. Un recut change
+    cut.mp4 mais garde la meme URL -> Remotion sert l'ANCIEN fichier cache, plus court
+    que le nouveau -> rendu qui echoue en plein milieu avec "No frame found at
+    position" (piege vecu, 9 dossiers perimes retrouves manuellement une fois). Purger
+    ce cache AVANT CHAQUE rendu l'empeche de se reproduire, sans jamais avoir besoin
+    d'un diagnostic manuel."""
+    n = 0
+    for pat in ("remotion-v*-assets*", "remotion-*-assets*"):
+        for d in glob.glob(os.path.join(tmp, pat)):
+            shutil.rmtree(d, ignore_errors=True)
+            n += 1
+    if n:
+        log(f"cache d'assets Remotion purge ({n} dossier(s) perime(s)).")
 
 
 def main():
@@ -53,6 +71,7 @@ def main():
     try:
         os.makedirs(tmp, exist_ok=True)
         env["TEMP"] = env["TMP"] = tmp
+        purge_asset_cache(tmp)
     except OSError:
         pass  # disque absent -> temp par defaut
     r = subprocess.run(cmd, cwd=REMOTION, env=env)

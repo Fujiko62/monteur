@@ -207,12 +207,21 @@ def make_proxy(video, work_dir, name="proxy_review.mp4", max_mb=120):
 
 
 def load_config(work_dir=None):
-    """Charge config.json (racine) fusionnee avec un override eventuel dans work_dir."""
+    """Charge config.json (racine) fusionnee avec un override eventuel dans work_dir.
+
+    PIEGE VECU : un override place au mauvais endroit est ignore EN SILENCE (pas
+    d'erreur, config par defaut utilisee) -> sous-titres a zero / couleur non voulue
+    decouverts seulement a la verification visuelle, un build entier plus tard. D'ou
+    le log explicite ci-dessous : le seul chemin valide est work_dir/config.override.json,
+    et l'absence de ce fichier doit etre un CHOIX visible, jamais une surprise."""
     cfg = json.load(open(os.path.join(ROOT, "config.json"), encoding="utf-8"))
     if work_dir:
         ov = os.path.join(work_dir, "config.override.json")
         if os.path.exists(ov):
             _deep_merge(cfg, json.load(open(ov, encoding="utf-8")))
+            log(f"config: override applique ({ov})")
+        else:
+            log(f"config: AUCUN override trouve a {ov} — config.json par defaut utilisee.")
     return cfg
 
 

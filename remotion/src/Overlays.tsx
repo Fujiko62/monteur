@@ -435,8 +435,12 @@ export const Overlays: React.FC<{overlays: Item[]; width: number; height: number
         const common = {item, width, height, durF};
         let node: React.ReactNode = null;
         if (item.type === 'fx') node = (
+          // TOUS les FX heritent de l'accent de la DA par defaut (jamais une couleur
+          // codee en dur au hasard type violet/rouge) — un overlays.json qui ne precise
+          // pas `accent` reste coherent avec la charte de LA video, pas une palette
+          // generique oubliee (bug reel vecu : big_stat sorti violet sur une DA verte).
           <FX name={item.name} durF={durF}
-            params={item.name === 'title_card' ? {accent: da.accent, ...(item.params || {})} : item.params} />
+            params={{accent: da.accent, ...(item.params || {})}} />
         );
         else if (item.type === 'vfx') node = (
           // video d'effet stock (pluie, fumee, confettis reels...) compositee par blend mode.
