@@ -354,15 +354,65 @@ verticaux avec hook visible des la 1re seconde. Un FAIL = on repare AVANT de dec
 la video finie. Ne remplace pas les yeux (regarder des frames du fichier livre reste
 obligatoire) — il les complete.
 
-### 9. Publier (assiste, navigateur)
-YouTube reste connecte dans le navigateur integre (session persistante ; sinon Claude in
-Chrome). Studio -> Creer -> Importer : **l'utilisateur selectionne le fichier** (boite
-Windows inaccessible + >10 Mo), Claude remplit TOUT depuis PUBLICATION.md : titre,
-description, tags (verifier que les chips sont crees), audience, question IA, langue
-(scroller DANS le menu, pas la page), miniature, ecrans de fin (element S'abonner),
-visibilite. Par defaut : **Privee (brouillon)**. Rendre publique / poster le commentaire
-epingle : uniquement sur ordre explicite. Apres publication : verifier l'apparition dans
-"Contenu de la chaine".
+### 9. Publier (de A a Z via Claude in Chrome, SAUF le clic final)
+**Outil** : Claude in Chrome (session YouTube deja connectee de l'utilisateur — pas le
+navigateur integre, sauf si Claude in Chrome est indisponible). Objectif explicite de
+l'utilisateur : tout faire soi-meme (import du fichier compris, PAS besoin que
+l'utilisateur clique quoi que ce soit dans Studio) JUSQU'AU dernier geste. **REGLE
+ABSOLUE, non negociable, ne depend d'AUCUNE validation prealable de l'utilisateur** :
+le clic qui rend la video PUBLIQUE (ou poste le commentaire epingle) demande une
+confirmation EXPLICITE de l'utilisateur a CE moment precis — jamais par anticipation,
+jamais parce que "il a valide le skill". Tout le reste (import, chaque champ, chaque
+reglage ci-dessous) se fait sans interruption.
+
+Studio -> Creer -> Importer -> Claude selectionne le fichier lui-meme (Claude in Chrome
+gere le dialogue systeme) -> remplit TOUT depuis PUBLICATION.md : titre, description,
+tags (verifier que les chips sont crees), miniature, chapitres (voir checklist),
+ecran de fin, categorie+jeu, langue (scroller DANS le menu, pas la page), visibilite.
+Termine en **Privee (brouillon)**. Verifier l'apparition dans "Contenu de la chaine".
+
+**CHECKLIST OPTIMISATION VUES** (source : analyse video creator YouTube sur les reglages
+Studio qui freinent la portee — a appliquer/verifier a CHAQUE publication assistee) :
+- *Reglages de CHAINE, a faire UNE FOIS (verifier au premier montage, puis plus jamais)* :
+  pays de residence correct (cible l'audience francophone + evite les soucis de taxe
+  AdSense) ; fonctionnalites "intermediaires" activees (telephone verifie -> debloque
+  vignettes perso + videos >15min) ; mots-cles de chaine renseignes (theme + variantes) ;
+  **onglet "Accueil" de la chaine ACTIVE** (case a part entiere, PAS activee par defaut
+  sur un compte reel constate en pratique — sans elle toute la personnalisation ci-dessous
+  ne s'affiche jamais aux visiteurs, verifier en premier) ; page d'accueil personnalisee
+  (bande-annonce pour non-abonnes + video pour abonnes, section "Pour vous" activee,
+  Shorts pousses en bas ou retires — le format long construit plus de duree de visionnage
+  et de lien avec l'audience) ; filigrane video avec bouton "s'abonner" qui n'apparait
+  qu'a partir de 4-5s (effet de pop visible, pas sur toute la video — necessite une image
+  150x150, fournie par l'utilisateur si Claude in Chrome ne peut pas uploader un fichier
+  genere) ; bio de chaine courte (elle est tronquee si trop longue) avec le lien magique
+  d'abonnement (`<url-chaine ou @handle>?sub_confirmation=1` — declenche une pop-up
+  d'abonnement au clic, a placer dans la bio ET dans le lien de chaine ET dans la
+  description par defaut de chaque video) ; mots/liens bloques dans
+  Communaute pour filtrer les commentaires indesirables sans les supprimer.
+- *A CHAQUE video mise en ligne* :
+  "Conçue pour les enfants" = **NON** sauf si le contenu vise reellement les moins de 13
+  ans (sinon perte de commentaires, monetisation, autoplay) ; chapitrage AUTOMATIQUE
+  desactive (l'IA de YouTube peut spoiler ou mal decouper) — a la place, chapitres
+  ECRITS a la main dans la description (timecode + espace + titre, ex `00:00
+  Introduction`) ; "Lieux mentionnes" desactive (sauf chaine voyage) ; "Concepts
+  automatiques" desactive (experimental, peu fiable) ; "Publier dans le flux
+  abonnement + notifier" **coche par defaut**, mais A DECOCHER si la video sort du
+  sujet habituel de la chaine (evite de montrer un contenu hors-cible aux abonnes
+  actuels — mauvaise duree de visionnage qui plombe les stats de demarrage ; laisser
+  l'algorithme trouver la bonne audience a la place) ; ecran de fin avec un element
+  VIDEO qui redirige vers une autre video de la chaine (augmente la duree de session,
+  l'algorithme favorise les chaines qui retiennent) ; categorie + nom du jeu renseignes
+  si gaming ; pour un SHORT issu d'une longue : lier "Video similaire" vers la longue
+  (les spectateurs du short peuvent cliquer directement vers elle) ; licence YouTube
+  standard (reglage PAR VIDEO, pas de chaine — Creative Commons seulement si
+  l'utilisateur veut explicitement autoriser la reutilisation).
+- *Avant de choisir l'heure de publication* : Studio -> Audience -> tableau "quand vos
+  spectateurs sont sur YouTube" (heatmap jour/heure) -> viser un peu APRES le pic (pas
+  pile au debut du pic) plutot qu'une heure au hasard.
+- Visibilite par defaut TOUJOURS en Prive/Non repertorie pendant la mise en ligne
+  (jamais Public par defaut : un oubli au clic OK publierait immediatement, a la
+  mauvaise heure).
 
 ## MODES PARTICULIERS
 - **Talking-head / presentation (ton pro)** : coupe au silence OK en brouillon
